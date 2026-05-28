@@ -68,6 +68,7 @@ type RegisterCreditsSetting struct {
 
 // PrivateSetting 私有配置。
 type PrivateSetting struct {
+	BaseURL         string                 `json:"baseUrl"`
 	Channels        []ModelChannel         `json:"channels"`
 	PromptSync      PromptSyncSetting      `json:"promptSync"`
 	Auth            PrivateAuthSetting     `json:"auth"`

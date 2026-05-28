@@ -679,8 +679,15 @@ func Checkin(userID string) (CheckinResult, error) {
 	return CheckinResult{Credits: credits}, nil
 }
 
-// siteOrigin 返回站点外部访问地址。优先使用 BASE_URL 环境变量，避免依赖反向代理头。
+// siteOrigin 返回站点外部访问地址。优先使用私有配置中的 baseUrl，其次环境变量 BASE_URL。
 func siteOrigin() string {
+	// 优先从数据库私有配置读取
+	if settings, err := repository.GetSettings(); err == nil {
+		if base := strings.TrimSpace(settings.Private.BaseURL); base != "" {
+			return strings.TrimRight(base, "/")
+		}
+	}
+	// 其次从环境变量读取
 	if base := strings.TrimSpace(config.Cfg.BaseURL); base != "" {
 		return strings.TrimRight(base, "/")
 	}

@@ -195,6 +195,7 @@ export type AdminPublicSettings = {
 };
 
 export type AdminPrivateSettings = {
+    baseUrl: string;
     channels: AdminModelChannel[];
     promptSync: {
         enabled: boolean;

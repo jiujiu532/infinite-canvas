@@ -38,7 +38,7 @@ const emptySettings: AdminSettings = {
         },
         auth: { allowRegister: true, allowPasswordRegister: true, linuxDo: { enabled: false } },
     },
-    private: { channels: [], promptSync: { enabled: true, cron: "*/5 * * * *" }, auth: { allowRegister: true, allowPasswordRegister: true, linuxDo: { clientId: "", clientSecret: "" } }, checkin: { minCredits: 1, maxCredits: 10 }, registerCredits: { initialCredits: 0 } },
+    private: { baseUrl: "", channels: [], promptSync: { enabled: true, cron: "*/5 * * * *" }, auth: { allowRegister: true, allowPasswordRegister: true, linuxDo: { clientId: "", clientSecret: "" } }, checkin: { minCredits: 1, maxCredits: 10 }, registerCredits: { initialCredits: 0 } },
 };
 const emptyChannel: AdminModelChannel = { protocol: "openai", name: "", baseUrl: "", apiKey: "", models: [], weight: 1, enabled: true, remark: "" };
 
@@ -490,6 +490,11 @@ export default function AdminSettingsPage() {
                     ) : activeMode === "visual" ? (
                         <Form form={form} layout="vertical" initialValues={emptySettings} requiredMark={false}>
                             <Flex vertical gap={12}>
+                                <Card size="small" title="站点地址">
+                                    <Form.Item name={["private", "baseUrl"]} label="站点外部访问地址" extra="用于 OAuth 回调等场景，必须填写完整的外部可访问地址（如 https://your-domain.com）">
+                                        <Input placeholder="https://your-domain.com" />
+                                    </Form.Item>
+                                </Card>
                                 <Card size="small" title="注册控制">
                                     <Row gutter={16}>
                                         <Col xs={24} md={12}>
@@ -879,6 +884,7 @@ function normalizeModelCosts(items: Partial<AdminSettings["public"]["modelChanne
 
 function normalizePrivateSetting(setting: Partial<AdminSettings["private"]> = {}): AdminSettings["private"] {
     return {
+        baseUrl: setting.baseUrl || "",
         channels: (setting.channels || []).map(normalizeChannel),
         promptSync: {
             enabled: setting.promptSync?.enabled !== false,
