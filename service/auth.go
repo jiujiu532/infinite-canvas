@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	cryptorand "crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -126,7 +127,7 @@ func Login(username string, password string) (model.AuthSession, error) {
 	return newSession(user)
 }
 
-func LinuxDoAuthorizeURL(r *http.Request, redirect string) (string, error) {
+func LinuxDoAuthorizeURL(w http.ResponseWriter, r *http.Request, redirect string) (string, error) {
 	settings, err := repository.GetSettings()
 	if err != nil {
 		return "", err
@@ -139,17 +140,36 @@ func LinuxDoAuthorizeURL(r *http.Request, redirect string) (string, error) {
 	if strings.TrimSpace(linuxDo.ClientID) == "" || strings.TrimSpace(linuxDo.ClientSecret) == "" {
 		return "", safeMessageError{message: "Linux.do 登录未配置"}
 	}
+	// 生成随机 state 防止 CSRF
+	stateBuf := make([]byte, 24)
+	if _, err := cryptorand.Read(stateBuf); err != nil {
+		return "", err
+	}
+	state := base64.RawURLEncoding.EncodeToString(stateBuf)
+	// 将 state 和 redirect 存入 Cookie
+	secureCookie := isHTTPSRequest(r)
+	setOAuthCookie(w, "linuxdo_oauth_state", state, 600, secureCookie)
+	setOAuthCookie(w, "linuxdo_oauth_redirect", safeRedirectPath(redirect), 600, secureCookie)
+
 	values := url.Values{}
 	values.Set("client_id", linuxDo.ClientID)
-	values.Set("redirect_uri", linuxDoRedirectURI(r))
+	values.Set("redirect_uri", siteOrigin() + "/api/auth/linux-do/callback")
 	values.Set("response_type", "code")
 	values.Set("scope", "read")
-	values.Set("state", base64.RawURLEncoding.EncodeToString([]byte(redirect)))
+	values.Set("state", state)
 	return config.Cfg.LinuxDoAuthorizeURL + "?" + values.Encode(), nil
 }
 
 func LoginWithLinuxDo(r *http.Request, code string, state string) (model.AuthSession, string, error) {
-	redirect := decodeState(state)
+	// 从 Cookie 中读取并验证 state
+	expectedState := readOAuthCookie(r, "linuxdo_oauth_state")
+	redirect := safeRedirectPath(readOAuthCookie(r, "linuxdo_oauth_redirect"))
+	if redirect == "" {
+		redirect = "/"
+	}
+	if expectedState == "" || state == "" || state != expectedState {
+		return model.AuthSession{}, redirect, safeMessageError{message: "OAuth state 验证失败，请重试"}
+	}
 	settings, err := repository.GetSettings()
 	if err != nil {
 		return model.AuthSession{}, redirect, err
@@ -482,7 +502,7 @@ func linuxDoAccessToken(r *http.Request, code string, setting model.PrivateLinux
 	values.Set("client_secret", setting.ClientSecret)
 	values.Set("grant_type", "authorization_code")
 	values.Set("code", code)
-	values.Set("redirect_uri", linuxDoRedirectURI(r))
+	values.Set("redirect_uri", linuxDoRedirectURI())
 	req, _ := http.NewRequest(http.MethodPost, config.Cfg.LinuxDoTokenURL, strings.NewReader(values.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	var payload linuxDoTokenResponse
@@ -495,8 +515,8 @@ func linuxDoAccessToken(r *http.Request, code string, setting model.PrivateLinux
 	return payload.AccessToken, nil
 }
 
-func linuxDoRedirectURI(r *http.Request) string {
-	return RequestOrigin(r) + "/api/auth/linux-do/callback"
+func linuxDoRedirectURI() string {
+	return siteOrigin() + "/api/auth/linux-do/callback"
 }
 
 func linuxDoProfile(token string) (linuxDoUserResponse, error) {
@@ -657,4 +677,51 @@ func Checkin(userID string) (CheckinResult, error) {
 		CreatedAt: now(),
 	})
 	return CheckinResult{Credits: credits}, nil
+}
+
+// siteOrigin 返回站点外部访问地址。优先使用 BASE_URL 环境变量，避免依赖反向代理头。
+func siteOrigin() string {
+	if base := strings.TrimSpace(config.Cfg.BaseURL); base != "" {
+		return strings.TrimRight(base, "/")
+	}
+	return "http://localhost:" + config.Cfg.Port
+}
+
+// isHTTPSRequest 判断请求是否通过 HTTPS 访问。
+func isHTTPSRequest(r *http.Request) bool {
+	proto := strings.ToLower(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")))
+	return proto == "https"
+}
+
+// setOAuthCookie 设置 OAuth 流程中的 Cookie。
+func setOAuthCookie(w http.ResponseWriter, name string, value string, maxAge int, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    base64.RawURLEncoding.EncodeToString([]byte(value)),
+		Path:     "/api/auth",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// readOAuthCookie 读取 OAuth Cookie 的值。
+func readOAuthCookie(r *http.Request, name string) string {
+	cookie, err := r.Cookie(name)
+	if err != nil || cookie.Value == "" {
+		return ""
+	}
+	data, err := base64.RawURLEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// ClearOAuthCookies 清除 OAuth 流程中的 Cookie。
+func ClearOAuthCookies(w http.ResponseWriter, r *http.Request) {
+	secure := isHTTPSRequest(r)
+	setOAuthCookie(w, "linuxdo_oauth_state", "", -1, secure)
+	setOAuthCookie(w, "linuxdo_oauth_redirect", "", -1, secure)
 }

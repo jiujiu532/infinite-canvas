@@ -45,12 +45,22 @@ function LoginContent() {
     const allowRegister = useConfigStore((state) => state.publicSettings?.auth?.allowRegister !== false);
     const allowPasswordRegister = useConfigStore((state) => state.publicSettings?.auth?.allowPasswordRegister !== false);
     const [mode, setMode] = useState<"login" | "register">("login");
-    const redirect = safeRedirect(searchParams.get("redirect"));
+
+    // 从 query params 或 URL fragment 中读取 redirect
+    const queryRedirect = searchParams.get("redirect");
 
     useEffect(() => {
-        const token = searchParams.get("token");
-        const error = searchParams.get("error");
+        // 优先从 URL fragment 中读取 OAuth 回调参数（更安全，不经过服务器）
+        const hash = window.location.hash.slice(1);
+        const fragment = new URLSearchParams(hash);
+        const token = fragment.get("token") || searchParams.get("token");
+        const error = fragment.get("error") || searchParams.get("error");
+        const fragmentRedirect = fragment.get("redirect");
+        const redirect = safeRedirect(fragmentRedirect || queryRedirect);
+
         if (error) message.error(error);
+        // 清除 fragment 避免刷新重复处理
+        if (hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
         if (!token) return;
         void fetchCurrentUser(token).then((user) => {
             setSession(token, user);
@@ -58,7 +68,7 @@ function LoginContent() {
             router.replace(redirect);
             router.refresh();
         });
-    }, [message, redirect, router, searchParams, setSession]);
+    }, [message, queryRedirect, router, searchParams, setSession]);
 
     useEffect(() => {
         if ((!allowRegister || !allowPasswordRegister) && mode === "register") setMode("login");
@@ -77,7 +87,8 @@ function LoginContent() {
             const action = mode === "register" ? register : login;
             const user = await action({ username: values.username, password: values.password });
             message.success(mode === "register" ? "注册成功" : "登录成功");
-            router.replace(redirect);
+            const loginRedirect = safeRedirect(queryRedirect);
+            router.replace(loginRedirect);
             router.refresh();
             if (user.role !== "admin") router.replace("/");
         } catch (error) {

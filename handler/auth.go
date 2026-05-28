@@ -57,7 +57,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func LinuxDoAuthorize(w http.ResponseWriter, r *http.Request) {
-	authURL, err := service.LinuxDoAuthorizeURL(r, r.URL.Query().Get("redirect"))
+	authURL, err := service.LinuxDoAuthorizeURL(w, r, r.URL.Query().Get("redirect"))
 	if err != nil {
 		FailError(w, err)
 		return
@@ -67,11 +67,13 @@ func LinuxDoAuthorize(w http.ResponseWriter, r *http.Request) {
 
 func LinuxDoCallback(w http.ResponseWriter, r *http.Request) {
 	session, redirect, err := service.LoginWithLinuxDo(r, r.URL.Query().Get("code"), r.URL.Query().Get("state"))
+	// 清除 OAuth Cookie
+	service.ClearOAuthCookies(w, r)
 	if err != nil {
-		http.Redirect(w, r, loginRedirect(r, redirect, "", err.Error()), http.StatusFound)
+		http.Redirect(w, r, loginRedirectWithFragment(redirect, "", err.Error()), http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, loginRedirect(r, redirect, session.Token, ""), http.StatusFound)
+	http.Redirect(w, r, loginRedirectWithFragment(redirect, session.Token, ""), http.StatusFound)
 }
 
 func AdminLogin(w http.ResponseWriter, r *http.Request) {
@@ -189,6 +191,21 @@ func loginRedirect(r *http.Request, redirect string, token string, message strin
 		values.Set("redirect", redirect)
 	}
 	return service.RequestOrigin(r) + "/login?" + values.Encode()
+}
+
+// loginRedirectWithFragment 使用 URL fragment 传递 token，不经过服务器更安全。
+func loginRedirectWithFragment(redirect string, token string, message string) string {
+	fragment := url.Values{}
+	if strings.TrimSpace(token) != "" {
+		fragment.Set("token", token)
+	}
+	if strings.TrimSpace(message) != "" {
+		fragment.Set("error", message)
+	}
+	if strings.TrimSpace(redirect) != "" {
+		fragment.Set("redirect", redirect)
+	}
+	return "/login#" + fragment.Encode()
 }
 
 func AdminDeleteUser(w http.ResponseWriter, r *http.Request, id string) {

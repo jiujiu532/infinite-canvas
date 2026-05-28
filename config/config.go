@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	Port                string `env:"PORT" envDefault:"8080"`
+	BaseURL             string `env:"BASE_URL"`
 	AdminUsername       string `env:"ADMIN_USERNAME" envDefault:"admin"`
 	AdminPassword       string `env:"ADMIN_PASSWORD" envDefault:"infinite-canvas"`
 	JWTSecret           string `env:"JWT_SECRET" envDefault:"infinite-canvas"`
