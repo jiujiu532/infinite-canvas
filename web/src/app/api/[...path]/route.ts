@@ -12,8 +12,13 @@ function proxyHeaders(request: NextRequest) {
     headers.delete("host");
     headers.delete("content-length");
     headers.delete("connection");
-    headers.set("x-forwarded-host", request.nextUrl.host);
-    headers.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""));
+    // 优先使用上游代理传入的 x-forwarded-host/proto，否则从请求 URL 中取
+    if (!headers.get("x-forwarded-host")) {
+        headers.set("x-forwarded-host", request.nextUrl.host);
+    }
+    if (!headers.get("x-forwarded-proto")) {
+        headers.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""));
+    }
     return headers;
 }
 
