@@ -153,7 +153,7 @@ func LinuxDoAuthorizeURL(w http.ResponseWriter, r *http.Request, redirect string
 
 	values := url.Values{}
 	values.Set("client_id", linuxDo.ClientID)
-	values.Set("redirect_uri", siteOrigin() + "/api/auth/linux-do/callback")
+	values.Set("redirect_uri", SiteOrigin() + "/api/auth/linux-do/callback")
 	values.Set("response_type", "code")
 	values.Set("scope", "read")
 	values.Set("state", state)
@@ -516,7 +516,7 @@ func linuxDoAccessToken(r *http.Request, code string, setting model.PrivateLinux
 }
 
 func linuxDoRedirectURI() string {
-	return siteOrigin() + "/api/auth/linux-do/callback"
+	return SiteOrigin() + "/api/auth/linux-do/callback"
 }
 
 func linuxDoProfile(token string) (linuxDoUserResponse, error) {
@@ -679,8 +679,8 @@ func Checkin(userID string) (CheckinResult, error) {
 	return CheckinResult{Credits: credits}, nil
 }
 
-// siteOrigin 返回站点外部访问地址。优先使用私有配置中的 baseUrl，其次环境变量 BASE_URL。
-func siteOrigin() string {
+// SiteOrigin 返回站点外部访问地址。优先使用私有配置中的 baseUrl，其次环境变量 BASE_URL。
+func SiteOrigin() string {
 	// 优先从数据库私有配置读取
 	if settings, err := repository.GetSettings(); err == nil {
 		if base := strings.TrimSpace(settings.Private.BaseURL); base != "" {

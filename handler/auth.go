@@ -70,10 +70,10 @@ func LinuxDoCallback(w http.ResponseWriter, r *http.Request) {
 	// 清除 OAuth Cookie
 	service.ClearOAuthCookies(w, r)
 	if err != nil {
-		http.Redirect(w, r, loginRedirectWithFragment(redirect, "", err.Error()), http.StatusFound)
+		http.Redirect(w, r, loginRedirectURL(redirect, "", err.Error()), http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, loginRedirectWithFragment(redirect, session.Token, ""), http.StatusFound)
+	http.Redirect(w, r, loginRedirectURL(redirect, session.Token, ""), http.StatusFound)
 }
 
 func AdminLogin(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,8 @@ func AdminDeleteCreditLog(w http.ResponseWriter, r *http.Request, id string) {
 	OK(w, true)
 }
 
-func loginRedirect(r *http.Request, redirect string, token string, message string) string {
+// loginRedirectURL 使用站点完整 URL 重定向到登录页，通过 query params 传递 token。
+func loginRedirectURL(redirect string, token string, message string) string {
 	values := url.Values{}
 	if strings.TrimSpace(token) != "" {
 		values.Set("token", token)
@@ -190,22 +191,7 @@ func loginRedirect(r *http.Request, redirect string, token string, message strin
 	if strings.TrimSpace(redirect) != "" {
 		values.Set("redirect", redirect)
 	}
-	return service.RequestOrigin(r) + "/login?" + values.Encode()
-}
-
-// loginRedirectWithFragment 使用 URL fragment 传递 token，不经过服务器更安全。
-func loginRedirectWithFragment(redirect string, token string, message string) string {
-	fragment := url.Values{}
-	if strings.TrimSpace(token) != "" {
-		fragment.Set("token", token)
-	}
-	if strings.TrimSpace(message) != "" {
-		fragment.Set("error", message)
-	}
-	if strings.TrimSpace(redirect) != "" {
-		fragment.Set("redirect", redirect)
-	}
-	return "/login#" + fragment.Encode()
+	return service.SiteOrigin() + "/login?" + values.Encode()
 }
 
 func AdminDeleteUser(w http.ResponseWriter, r *http.Request, id string) {

@@ -50,24 +50,28 @@ function LoginContent() {
     const queryRedirect = searchParams.get("redirect");
 
     useEffect(() => {
-        // 优先从 URL fragment 中读取 OAuth 回调参数（更安全，不经过服务器）
+        // 从 query params 读取 OAuth 回调参数，同时兼容 fragment 方式
         const hash = window.location.hash.slice(1);
-        const fragment = new URLSearchParams(hash);
-        const token = fragment.get("token") || searchParams.get("token");
-        const error = fragment.get("error") || searchParams.get("error");
-        const fragmentRedirect = fragment.get("redirect");
+        const fragment = hash ? new URLSearchParams(hash) : null;
+        const token = searchParams.get("token") || fragment?.get("token") || null;
+        const error = searchParams.get("error") || fragment?.get("error") || null;
+        const fragmentRedirect = fragment?.get("redirect");
         const redirect = safeRedirect(fragmentRedirect || queryRedirect);
 
         if (error) message.error(error);
         // 清除 fragment 避免刷新重复处理
         if (hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
         if (!token) return;
-        void fetchCurrentUser(token).then((user) => {
-            setSession(token, user);
-            message.success("登录成功");
-            router.replace(redirect);
-            router.refresh();
-        });
+        void fetchCurrentUser(token)
+            .then((user) => {
+                setSession(token, user);
+                message.success("登录成功");
+                router.replace(redirect);
+                router.refresh();
+            })
+            .catch((err) => {
+                message.error(err instanceof Error ? err.message : "登录失败");
+            });
     }, [message, queryRedirect, router, searchParams, setSession]);
 
     useEffect(() => {
