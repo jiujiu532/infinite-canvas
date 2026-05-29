@@ -36,6 +36,8 @@ export type AdminUserListResponse = {
 export type AdminCreditLog = {
     id: string;
     userId: string;
+    username: string;
+    displayName: string;
     type: string;
     amount: number;
     balance: number;

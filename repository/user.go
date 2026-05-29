@@ -144,8 +144,42 @@ func ListCreditLogs(q model.Query) ([]model.CreditLog, int64, error) {
 		return nil, 0, err
 	}
 	var logs []model.CreditLog
-	err = tx.Order("created_at desc").Offset(q.Offset()).Limit(q.PageSize).Find(&logs).Error
-	return logs, total, err
+	if err := tx.Order("created_at desc").Offset(q.Offset()).Limit(q.PageSize).Find(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+	// 填充关联用户信息
+	fillCreditLogUserInfo(db, logs)
+	return logs, total, nil
+}
+
+// fillCreditLogUserInfo 批量查询用户名和昵称填充到日志中。
+func fillCreditLogUserInfo(db *gorm.DB, logs []model.CreditLog) {
+	if len(logs) == 0 {
+		return
+	}
+	userIDs := make([]string, 0, len(logs))
+	seen := map[string]bool{}
+	for _, log := range logs {
+		if log.UserID != "" && !seen[log.UserID] {
+			seen[log.UserID] = true
+			userIDs = append(userIDs, log.UserID)
+		}
+	}
+	if len(userIDs) == 0 {
+		return
+	}
+	var users []model.User
+	db.Select("id, username, display_name").Where("id IN ?", userIDs).Find(&users)
+	userMap := make(map[string]model.User, len(users))
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+	for i := range logs {
+		if u, ok := userMap[logs[i].UserID]; ok {
+			logs[i].Username = u.Username
+			logs[i].DisplayName = u.DisplayName
+		}
+	}
 }
 
 func DeleteCreditLog(id string) error {

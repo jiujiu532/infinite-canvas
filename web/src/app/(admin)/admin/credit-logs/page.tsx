@@ -167,6 +167,20 @@ export default function AdminCreditLogsPage() {
                                 <Input />
                             </Form.Item>
                         </Col>
+                        {editingLog?.id && (
+                            <>
+                                <Col span={12}>
+                                    <Form.Item label="用户名">
+                                        <Input value={editingLog.username || "-"} readOnly variant="filled" />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item label="用户昵称">
+                                        <Input value={editingLog.displayName || "-"} readOnly variant="filled" />
+                                    </Form.Item>
+                                </Col>
+                            </>
+                        )}
                         <Col span={12}>
                             <Form.Item name="amount" label="变动数量" rules={[{ required: true, message: "请输入变动数量" }]}>
                                 <InputNumber precision={0} style={{ width: "100%" }} />

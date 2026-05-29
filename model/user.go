@@ -98,6 +98,10 @@ type CreditLog struct {
 	Remark    string        `json:"remark"`
 	Extra     string        `json:"extra" gorm:"type:text"`
 	CreatedAt string        `json:"createdAt"`
+
+	// 关联用户信息（非数据库字段，查询时填充）
+	Username    string `json:"username" gorm:"-"`
+	DisplayName string `json:"displayName" gorm:"-"`
 }
 
 type CreditLogList struct {
