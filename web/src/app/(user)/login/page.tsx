@@ -141,7 +141,7 @@ function LoginContent() {
                             {mode === "register" ? "注册" : "登录"}
                         </Button>
                         {linuxDoEnabled ? (
-                            <Button block href={`/api/auth/linux-do/authorize?redirect=${encodeURIComponent(redirect)}`} icon={<img src="/icons/linuxdo.svg" alt="" width={18} height={18} />}>
+                            <Button block href={`/api/auth/linux-do/authorize?redirect=${encodeURIComponent(safeRedirect(queryRedirect))}`} icon={<img src="/icons/linuxdo.svg" alt="" width={18} height={18} />}>
                                 使用 Linux.do 登录
                             </Button>
                         ) : null}
