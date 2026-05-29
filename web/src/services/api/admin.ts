@@ -246,3 +246,36 @@ export async function fetchChannelModels(token: string, payload: AdminChannelAct
 export async function testChannelModel(token: string, payload: AdminChannelActionRequest) {
     return apiPost<string>("/api/admin/settings/channel-test", payload, token);
 }
+
+// 公告管理
+export type AdminAnnouncement = {
+    id: string;
+    content: string;
+    level: string;
+    enabled: boolean;
+    sort: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type AdminAnnouncementListResponse = {
+    items: AdminAnnouncement[];
+    total: number;
+    enabled: boolean;
+};
+
+export async function fetchAdminAnnouncements(token: string) {
+    return apiGet<AdminAnnouncementListResponse>("/api/admin/announcements", undefined, token);
+}
+
+export async function saveAdminAnnouncement(token: string, item: Partial<AdminAnnouncement>) {
+    return apiPost<AdminAnnouncement>("/api/admin/announcements", item, token);
+}
+
+export async function deleteAdminAnnouncement(token: string, id: string) {
+    return apiDelete<boolean>(`/api/admin/announcements/${encodeURIComponent(id)}`, token);
+}
+
+export async function deleteAdminAnnouncements(token: string, ids: string[]) {
+    return apiPost<boolean>("/api/admin/announcements/batch-delete", { ids }, token);
+}

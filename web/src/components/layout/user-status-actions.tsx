@@ -7,6 +7,7 @@ import type { ItemType } from "antd/es/menu/interface";
 import Link from "next/link";
 
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { AnnouncementModal } from "@/components/layout/announcement-modal";
 import { GitHubLink } from "@/components/layout/github-link";
 import { VersionReleaseModal } from "@/components/layout/version-release-modal";
 import { CreditSymbol } from "@/constant/credits";
@@ -87,6 +88,7 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
 
     return (
         <div className="inline-flex shrink-0 items-center gap-1.5">
+            <AnnouncementModal style={iconStyle} />
             {user ? (
                 <Tooltip title={hasCheckedInToday ? "今日已签到" : "每日签到"} placement="bottom">
                     <button
