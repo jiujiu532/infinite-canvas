@@ -59,8 +59,10 @@ function LoginContent() {
         const redirect = safeRedirect(fragmentRedirect || queryRedirect);
 
         if (error) message.error(error);
-        // 清除 fragment 避免刷新重复处理
-        if (hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        // 清除 URL 参数避免刷新重复处理
+        if (hash || token || error) {
+            window.history.replaceState(null, "", "/login");
+        }
         if (!token) return;
         void fetchCurrentUser(token)
             .then((user) => {

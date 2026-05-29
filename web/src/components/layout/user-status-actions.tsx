@@ -74,7 +74,15 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
         ...(user?.role === "admin" ? [{ key: "admin", icon: <Shield className="size-4" />, label: <Link href="/admin">管理后台</Link> }] : []),
         ...(onOpenShortcuts ? [{ key: "shortcuts", icon: <Keyboard className="size-4" />, label: "快捷键", onClick: onOpenShortcuts }] : []),
         { type: "divider" },
-        { key: "logout", icon: <LogOut className="size-4" />, label: "退出登录", onClick: logout },
+        {
+            key: "logout",
+            icon: <LogOut className="size-4" />,
+            label: "退出登录",
+            onClick: () => {
+                logout();
+                window.location.href = "/login";
+            },
+        },
     ];
 
     return (

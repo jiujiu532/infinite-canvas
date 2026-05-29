@@ -86,7 +86,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <Button block icon={<HomeOutlined />} href="/canvas" target="_blank" rel="noreferrer">
                         前往画布
                     </Button>
-                    <Button block icon={<LogoutOutlined />} onClick={logout}>
+                    <Button
+                        block
+                        icon={<LogoutOutlined />}
+                        onClick={() => {
+                            logout();
+                            window.location.href = "/login";
+                        }}
+                    >
                         退出登录
                     </Button>
                 </Flex>
